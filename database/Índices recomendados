@@ -1,0 +1,8 @@
+CREATE INDEX meal_photo_user_time_idx ON meal_photo(user_id, uploaded_at DESC);
+CREATE INDEX meal_photo_visibility_idx ON meal_photo(visibility, uploaded_at DESC);
+CREATE INDEX meal_photo_moderation_idx ON meal_photo(moderation);
+
+CREATE INDEX meal_analysis_photo_time_idx ON meal_analysis(photo_id, created_at DESC);
+
+CREATE INDEX photo_comment_photo_idx ON photo_comment(photo_id, created_at DESC);
+CREATE INDEX photo_like_photo_idx    ON photo_like(photo_id);

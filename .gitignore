@@ -1,0 +1,44 @@
+# Build outputs
+.next/
+out/
+dist/
+build/
+
+# Dependencies
+node_modules/
+
+# Deployment
+.vercel/
+
+# Environment variables
+.env
+.env.*
+!.env.example
+
+# Data and uploads
+library_vector_db.json
+data/legacy/
+public/uploads/
+logs/
+*.log
+
+# OS files
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Test coverage
+coverage/
+.nyc_output/
+
+# Temporary files
+tmp/
+temp/
+*.tmp

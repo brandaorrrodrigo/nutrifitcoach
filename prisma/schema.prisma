@@ -1,0 +1,362 @@
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+enum Visibility {
+  private
+  followers
+  public
+}
+
+enum ModerationStatus {
+  pending
+  approved
+  rejected
+}
+
+enum CaptureSource {
+  mobile
+  web
+  whatsapp
+  telegram
+  upload
+}
+
+enum MealType {
+  breakfast
+  lunch
+  dinner
+  snack
+  preworkout
+  postworkout
+}
+
+model AppUser {
+  id           String   @id @default(uuid())
+  email        String   @unique
+  password     String? // Para autenticação com credenciais
+  name         String?
+  display_name String?
+  avatar_url   String?
+  is_founder   Boolean  @default(false)
+  is_premium   Boolean  @default(false)
+  created_at   DateTime @default(now())
+  updated_at   DateTime @default(now())
+
+  photos               MealPhoto[]
+  followers            UserFollow[]          @relation("followers")
+  following            UserFollow[]          @relation("following")
+  accounts             Account[]
+  sessions             Session[]
+  userStreaks          UserStreak[]
+  userDailyTargets     UserDailyTargets[]
+  photoLikes           PhotoLike[]
+  photoComments        PhotoComment[]
+  enemSimulados        EnemSimulado[]
+  userGamificationEnem UserGamificationEnem?
+  refreshTokens        UserRefreshToken[]
+}
+
+model UserFollow {
+  follower    AppUser  @relation("following", fields: [follower_id], references: [id], onDelete: Cascade)
+  follower_id String
+  followee    AppUser  @relation("followers", fields: [followee_id], references: [id], onDelete: Cascade)
+  followee_id String
+  created_at  DateTime @default(now())
+
+  @@id([follower_id, followee_id])
+}
+
+model MealPhoto {
+  id                String           @id @default(uuid())
+  user              AppUser          @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  user_id           String
+  taken_at          DateTime?
+  uploaded_at       DateTime         @default(now())
+  source            CaptureSource    @default(web)
+  visibility        Visibility       @default(private)
+  meal              MealType?
+  caption           String?
+  original_url      String
+  display_url       String
+  thumb_url         String?
+  sha256            String?
+  exif_json         Json?
+  width             Int?
+  height            Int?
+  moderation        ModerationStatus @default(pending)
+  moderation_reason String?
+  meta              Json?
+  updated_at        DateTime         @default(now())
+
+  analyses      MealAnalysis[]
+  score         MealScore?
+  photoLikes    PhotoLike[]
+  photoComments PhotoComment[]
+
+  @@unique([user_id, sha256])
+}
+
+model MealAnalysis {
+  id               String      @id @default(uuid())
+  photo            MealPhoto   @relation(fields: [photo_id], references: [id], onDelete: Cascade)
+  photo_id         String
+  analyzer_version String
+  calories_kcal    Decimal?
+  protein_g        Decimal?
+  carbs_g          Decimal?
+  fat_g            Decimal?
+  fiber_g          Decimal?
+  gi_estimate      Decimal?
+  gl_estimate      Decimal?
+  portion_quality  Decimal?
+  plan_alignment   Decimal?
+  tags             String[]
+  raw_json         Json
+  created_at       DateTime    @default(now())
+  mealScores       MealScore[]
+}
+
+model MealScore {
+  photo         MealPhoto    @relation(fields: [photo_id], references: [id], onDelete: Cascade)
+  photo_id      String       @id
+  analysis      MealAnalysis @relation(fields: [analysis_id], references: [id], onDelete: Cascade)
+  analysis_id   String
+  base_points   Int
+  bonus_streak  Int
+  penalty_rules Int
+  total_points  Int
+  computed_at   DateTime     @default(now())
+}
+
+model UserStreak {
+  user           AppUser   @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  user_id        String    @id
+  current_streak Int       @default(0)
+  best_streak    Int       @default(0)
+  last_day       DateTime?
+}
+
+model UserDailyTargets {
+  id          String   @id @default(uuid())
+  user        AppUser  @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  user_id     String
+  day         DateTime
+  kcal_target Int?
+  protein_g   Decimal?
+  carbs_g     Decimal?
+  fat_g       Decimal?
+  fiber_g     Decimal?
+
+  @@unique([user_id, day])
+}
+
+model PhotoLike {
+  photo      MealPhoto @relation(fields: [photo_id], references: [id], onDelete: Cascade)
+  photo_id   String
+  user       AppUser   @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  user_id    String
+  created_at DateTime  @default(now())
+
+  @@id([photo_id, user_id])
+}
+
+model PhotoComment {
+  id         String    @id @default(uuid())
+  photo      MealPhoto @relation(fields: [photo_id], references: [id], onDelete: Cascade)
+  photo_id   String
+  user       AppUser   @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  user_id    String
+  body       String
+  created_at DateTime  @default(now())
+}
+
+// ============================================
+// MODELOS ENEM - Sistema de Simulados
+// ============================================
+
+enum SimuladoStatus {
+  em_andamento
+  finalizado
+  abandonado
+}
+
+enum AreaConhecimento {
+  linguagens
+  matematica
+  ciencias_natureza
+  ciencias_humanas
+}
+
+model EnemSimulado {
+  id                  String         @id @default(uuid())
+  user                AppUser        @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  user_id             String
+  status              SimuladoStatus @default(em_andamento)
+  started_at          DateTime       @default(now())
+  finished_at         DateTime?
+  total_questions     Int            @default(45)
+  nota_final          Decimal?
+  tempo_total_minutos Int?
+
+  respostas  EnemResposta[]
+  comparacao EnemComparacao?
+
+  @@index([user_id, status])
+  @@index([finished_at])
+}
+
+model EnemQuestao {
+  id           String           @id @default(uuid())
+  ano          Int
+  prova        String // ex: "2023_primeira_aplicacao"
+  numero       Int
+  area         AreaConhecimento
+  disciplina   String // ex: "portugues", "matematica"
+  habilidade   String? // ex: "H1", "H2" da matriz do ENEM
+  enunciado    String
+  alternativas Json // { "A": "texto...", "B": "texto...", ... }
+  gabarito     String // "A", "B", "C", "D", "E"
+  dificuldade  String? // "facil", "medio", "dificil"
+
+  respostas EnemResposta[]
+
+  @@unique([ano, prova, numero])
+  @@index([area, disciplina])
+}
+
+model EnemResposta {
+  id             String       @id @default(uuid())
+  simulado       EnemSimulado @relation(fields: [simulado_id], references: [id], onDelete: Cascade)
+  simulado_id    String
+  questao        EnemQuestao  @relation(fields: [questao_id], references: [id], onDelete: Cascade)
+  questao_id     String
+  resposta_user  String? // "A", "B", "C", "D", "E" ou null se pulou
+  correta        Boolean
+  tempo_segundos Int?
+  respondido_at  DateTime     @default(now())
+
+  @@unique([simulado_id, questao_id])
+  @@index([simulado_id])
+}
+
+model EnemComparacao {
+  id               String       @id @default(uuid())
+  simulado         EnemSimulado @relation(fields: [simulado_id], references: [id], onDelete: Cascade)
+  simulado_id      String       @unique
+  nota_corte_curso String? // ex: "Medicina - UFMG"
+  nota_corte_valor Decimal?
+  passou           Boolean      @default(false)
+  diferenca_pontos Decimal?
+  percentil        Decimal? // posição em relação a outros usuários
+  created_at       DateTime     @default(now())
+}
+
+// ============================================
+// GAMIFICAÇÃO ENEM - FP, Streaks, Conquistas
+// ============================================
+
+model UserGamificationEnem {
+  id             String    @id @default(uuid())
+  user           AppUser   @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  user_id        String    @unique
+  total_fp       Int       @default(0)
+  current_streak Int       @default(0)
+  best_streak    Int       @default(0)
+  last_activity  DateTime?
+  created_at     DateTime  @default(now())
+  updated_at     DateTime  @updatedAt
+
+  achievements UserAchievementEnem[]
+  fp_history   FPHistoryEnem[]
+}
+
+model UserAchievementEnem {
+  id              String               @id @default(uuid())
+  gamification    UserGamificationEnem @relation(fields: [gamification_id], references: [id], onDelete: Cascade)
+  gamification_id String
+  code            String // ex: "PRIMEIRO_SIMULADO", "BATEU_NOTA_CORTE"
+  title           String
+  description     String
+  unlocked_at     DateTime             @default(now())
+
+  @@unique([gamification_id, code])
+  @@index([gamification_id])
+}
+
+model FPHistoryEnem {
+  id              String               @id @default(uuid())
+  gamification    UserGamificationEnem @relation(fields: [gamification_id], references: [id], onDelete: Cascade)
+  gamification_id String
+  fp_amount       Int
+  motivo          String // ex: "Simulado concluído", "Bateu nota de corte"
+  simulado_id     String? // referência opcional ao simulado
+  created_at      DateTime             @default(now())
+
+  @@index([gamification_id, created_at])
+}
+
+// ============================================
+// NEXTAUTH - Modelos de Autenticação
+// ============================================
+
+model Account {
+  id                String  @id @default(uuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String?
+  access_token      String?
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String?
+  session_state     String?
+
+  user AppUser @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+  @@index([userId])
+}
+
+model Session {
+  id           String   @id @default(uuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         AppUser  @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+// ============================================
+// REFRESH TOKENS - Tokens de renovação JWT
+// ============================================
+
+model UserRefreshToken {
+  id          String   @id @default(uuid())
+  user        AppUser  @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  user_id     String
+  token       String   @unique
+  expires_at  DateTime
+  created_at  DateTime @default(now())
+  revoked     Boolean  @default(false)
+  revoked_at  DateTime?
+
+  @@index([user_id])
+  @@index([token])
+}
