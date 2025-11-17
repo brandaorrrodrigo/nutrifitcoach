@@ -89,12 +89,30 @@ export default withAuth(
 export const config = {
   matcher: [
     /*
-     * Aplica em todas as rotas exceto:
-     * - _next/static (arquivos estáticos)
-     * - _next/image (otimização de imagens)
-     * - favicon.ico
-     * - Arquivos públicos (*.svg, *.png, etc)
+     * Aplica middleware apenas em rotas protegidas:
+     * - /dashboard (e sub-rotas)
+     * - /perfil
+     * - /anamnese
+     * - /minha-anamnese
+     * - /minhas-fotos
+     * - /progresso
+     * - /configuracoes-ia
+     * - /enem (e sub-rotas)
+     *
+     * NÃO aplica em:
+     * - / (home pública)
+     * - /login, /registro (autenticação)
+     * - /precos, /planos (páginas públicas)
+     * - /api/auth/* (rotas do NextAuth)
+     * - _next/static, imagens, etc.
      */
-    '/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
+    '/dashboard/:path*',
+    '/perfil/:path*',
+    '/anamnese/:path*',
+    '/minha-anamnese/:path*',
+    '/minhas-fotos/:path*',
+    '/progresso/:path*',
+    '/configuracoes-ia/:path*',
+    '/enem/:path*',
   ],
 };

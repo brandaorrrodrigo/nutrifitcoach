@@ -1,89 +1,135 @@
 import { getServerSession } from 'next-auth/next';
-import { AuthOptions } from 'next-auth';
+import type { AuthOptions } from 'next-auth';
 import CredentialsProvider from 'next-auth/providers/credentials';
-import { PrismaAdapter } from '@next-auth/prisma-adapter';
 import { prisma } from '@/lib/prisma';
 import bcrypt from 'bcryptjs';
 
+/**
+ * Configuração principal do NextAuth para o NutriFitCoach.
+ * - Autenticação via Credentials (e-mail + senha)
+ * - Sessão via JWT
+ * - Sem PrismaAdapter (incompatível com Credentials)
+ */
 export const authOptions: AuthOptions = {
-  adapter: PrismaAdapter(prisma),
   providers: [
     CredentialsProvider({
       name: 'Credentials',
       credentials: {
-        email: { label: 'Email', type: 'email' },
-        password: { label: 'Senha', type: 'password' }
+        email: {
+          label: 'E-mail',
+          type: 'email',
+          placeholder: 'seuemail@exemplo.com',
+        },
+        password: {
+          label: 'Senha',
+          type: 'password',
+        },
       },
       async authorize(credentials) {
         if (!credentials?.email || !credentials?.password) {
-          throw new Error('Email e senha são obrigatórios');
+          throw new Error('E-mail e senha são obrigatórios');
         }
 
-        const user = await prisma.appUser.findUnique({
-          where: { email: credentials.email }
+        const user = await prisma.user.findUnique({
+          where: { email: credentials.email },
         });
 
         if (!user || !user.password) {
+          // Ajuste o campo "password" aqui se no seu schema tiver outro nome.
           throw new Error('Credenciais inválidas');
         }
 
-        const isPasswordValid = await bcrypt.compare(
-          credentials.password,
-          user.password
-        );
-
-        if (!isPasswordValid) {
+        const isValid = await bcrypt.compare(credentials.password, user.password);
+        if (!isValid) {
           throw new Error('Credenciais inválidas');
         }
 
+        // Dados que vão para o token JWT
         return {
           id: user.id,
+          name: user.name ?? user.email,
           email: user.email,
-          name: user.name || user.display_name,
-          image: user.avatar_url,
-          isPremium: user.is_premium,
-          isFounder: user.is_founder
-        };
-      }
-    })
+          is_admin: user.is_admin,
+          is_premium: user.is_premium,
+          is_founder: user.is_founder,
+        } as any;
+      },
+    }),
   ],
-  callbacks: {
-    async jwt({ token, user }) {
-      if (user) {
-        token.id = user.id;
-        token.isPremium = (user as any).isPremium;
-        token.isFounder = (user as any).isFounder;
-      }
-      return token;
-    },
-    async session({ session, token }) {
-      if (session.user) {
-        (session.user as any).id = token.id;
-        (session.user as any).isPremium = token.isPremium;
-        (session.user as any).isFounder = token.isFounder;
-      }
-      return session;
-    }
-  },
-  pages: {
-    signIn: '/login',
-    signOut: '/login',
-    error: '/login'
-  },
+
+  /**
+   * Sessão baseada em JWT funciona melhor com CredentialsProvider.
+   */
   session: {
     strategy: 'jwt',
-    maxAge: 30 * 24 * 60 * 60 // 30 dias
   },
-  secret: process.env.NEXTAUTH_SECRET
+
+  /**
+   * Página de login personalizada.
+   */
+  pages: {
+    signIn: '/login',
+  },
+
+  /**
+   * Callbacks para sincronizar JWT <-> Session e carregar dados extras do usuário.
+   */
+  callbacks: {
+    async jwt({ token, user }) {
+      // Quando o usuário faz login, "user" vem preenchido
+      if (user) {
+        token.id = (user as any).id;
+        token.is_admin = (user as any).is_admin;
+        token.is_premium = (user as any).is_premium;
+        token.is_founder = (user as any).is_founder;
+      } else {
+        // Em requisições subsequentes, garantimos que o token está atualizado com o banco
+        if (token.email) {
+          const dbUser = await prisma.user.findUnique({
+            where: { email: token.email as string },
+          });
+
+          if (dbUser) {
+            token.id = dbUser.id;
+            token.is_admin = dbUser.is_admin;
+            token.is_premium = dbUser.is_premium;
+            token.is_founder = dbUser.is_founder;
+          }
+        }
+      }
+
+      return token;
+    },
+
+    async session({ session, token }) {
+      if (session.user && token) {
+        (session.user as any).id = token.id;
+        (session.user as any).is_admin = token.is_admin;
+        (session.user as any).is_premium = token.is_premium;
+        (session.user as any).is_founder = token.is_founder;
+      }
+
+      return session;
+    },
+  },
+
+  /**
+   * Segredo usado para assinar tokens JWT.
+   * CERTIFIQUE-SE de definir NEXTAUTH_SECRET na Vercel.
+   */
+  secret: process.env.NEXTAUTH_SECRET,
 };
 
-// Validação: avisar se NEXTAUTH_SECRET não estiver definido (apenas em runtime, não em build)
-if (!process.env.NEXTAUTH_SECRET && typeof window === 'undefined' && process.env.NODE_ENV !== 'production') {
-  console.warn(
-    '⚠️ NEXTAUTH_SECRET não está definido! Configure a variável de ambiente no arquivo .env.local'
-  );
+/**
+ * Atalho simples para pegar a sessão no server.
+ */
+export async function getSession() {
+  return getServerSession(authOptions);
 }
 
+/**
+ * Retorna o usuário completo do banco com base na sessão atual.
+ */
 export async function getCurrentUser() {
   const session = await getServerSession(authOptions);
 
@@ -91,33 +137,44 @@ export async function getCurrentUser() {
     return null;
   }
 
-  const user = await prisma.appUser.findUnique({
+  const user = await prisma.user.findUnique({
     where: { email: session.user.email },
-    select: {
-      id: true,
-      email: true,
-      name: true,
-      display_name: true,
-      avatar_url: true,
-      is_premium: true,
-      is_founder: true,
-      created_at: true
-    }
   });
 
   return user;
 }
 
+/**
+ * Garante que o usuário está autenticado.
+ * - Retorna o usuário do banco
+ * - Lança erro se não estiver logado
+ */
 export async function requireAuth() {
   const user = await getCurrentUser();
 
   if (!user) {
+    throw new Error('Não autenticado');
+  }
+
+  return user;
+}
+
+/**
+ * Garante que o usuário é administrador.
+ */
+export async function requireAdmin() {
+  const user = await requireAuth();
+
+  if (!user.is_admin) {
     throw new Error('Não autorizado');
   }
 
   return user;
 }
 
+/**
+ * Garante que o usuário é Premium ou Founder.
+ */
 export async function requirePremium() {
   const user = await requireAuth();
 
