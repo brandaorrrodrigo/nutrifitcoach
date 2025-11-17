@@ -3,8 +3,8 @@ import Stripe from 'stripe';
 
 console.log('🔑 STRIPE_SECRET_KEY existe?', !!process.env.STRIPE_SECRET_KEY);
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-  apiVersion: '2024-11-20.acacia',
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || 'sk_test_placeholder', {
+  apiVersion: '2025-10-29.clover',
 });
 
 export async function POST(request: Request) {

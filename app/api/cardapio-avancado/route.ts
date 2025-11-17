@@ -31,8 +31,7 @@ export async function POST(request: Request) {
       case 'buscar_substituicoes':
         const substituicoes = encontrarSubstituicoes(
           dados.alimento,
-          dados.perfil,
-          dados.razao
+          5 // limite de substituições
         );
         return NextResponse.json({ substituicoes });
 

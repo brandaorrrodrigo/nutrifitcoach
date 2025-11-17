@@ -4,11 +4,11 @@ import type { NextRequest } from 'next/server';
 import { handleCORSPreflight, addCORSHeaders } from '@/lib/security/cors';
 
 export default withAuth(
-  function middleware(req) {
+  function middleware(req: NextRequest) {
     // 🔒 CORS - Handle preflight requests
-    const corsResponse = handleCORSPreflight(req);
-    if (corsResponse) {
-      return corsResponse;
+    const preflightResponse = handleCORSPreflight(req);
+    if (preflightResponse) {
+      return preflightResponse;
     }
 
     const token = req.nextauth.token;
@@ -74,17 +74,15 @@ export default withAuth(
     response.headers.delete('X-Powered-By');
 
     // 🔒 CORS Headers
-    const corsResponse = addCORSHeaders(response, req);
-
-    return corsResponse;
+    return addCORSHeaders(response, req);
   },
   {
     callbacks: {
-      authorized: ({ token }) => !!token
+      authorized: ({ token }) => !!token,
     },
     pages: {
-      signIn: '/login'
-    }
+      signIn: '/login',
+    },
   }
 );
 
@@ -98,5 +96,5 @@ export const config = {
      * - Arquivos públicos (*.svg, *.png, etc)
      */
     '/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
-  ]
+  ],
 };

@@ -1,6 +1,0 @@
-base_points =
-  5                         -- upload válido
-+ clamp(plan_alignment*10)  -- 0–10
-+ clamp(portion_quality*10) -- 0–10
-+ on-time bonus (0–5)
-- penalties (0–10)

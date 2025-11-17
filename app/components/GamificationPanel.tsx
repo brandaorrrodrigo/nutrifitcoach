@@ -7,7 +7,13 @@ interface GamificationProps {
 }
 
 export default function GamificationPanel({ onClose }: GamificationProps) {
-  const [stats, setStats] = useState({
+  const [stats, setStats] = useState<{
+    points: number;
+    level: number;
+    streak: number;
+    badges: string[];
+    nextLevelPoints: number;
+  }>({
     points: 0,
     level: 1,
     streak: 0,

@@ -1,0 +1,112 @@
+
+> nutrifitcoach-ai@0.1.0 build
+> next build
+
+   Ôû▓ Next.js 15.5.6
+
+   Creating an optimized production build ...
+Failed to compile.
+
+./app/api/ai-status/route.ts
+Module not found: Can't resolve '@/lib/ai-client/unified-client'
+
+https://nextjs.org/docs/messages/module-not-found
+
+./app/api/chat/route.ts
+Error:   x Unterminated template
+     ,-[D:\NutriFitcoach\app\api\chat\route.ts:94:1]
+  91 |     `;
+  92 |     
+  93 |         // Chamada ao Ollama
+  94 | ,->     const r = await fetch(\`\${OLLAMA_URL}/api/generate\`, {
+  95 | |         method: "POST",
+  96 | |         headers: { "Content-Type": "application/json" },
+  97 | |         body: JSON.stringify({
+  98 | |           model: OLLAMA_MODEL,
+  99 | |           prompt,
+ 100 | |           stream: false,
+ 101 | |           options: {
+ 102 | |             temperature: 0.4,
+ 103 | |             top_p: 0.9,
+ 104 | |             repeat_penalty: 1.05,
+ 105 | |             stop: ["</fim>", "<|eot_id|>"]
+ 106 | |           }
+ 107 | |         })
+ 108 | |       });
+ 109 | |   
+ 110 | |       if (!r.ok) {
+ 111 | |         const errTxt = await r.text().catch(() => "Erro desconhecido");
+ 112 | |         throw new Error(\`Ollama HTTP \${r.status}: \${errTxt}\`);
+ 113 | |       }
+ 114 | |   
+ 115 | |       const data = await r.json();
+ 116 | |       let text = sanitize(data?.response || "");
+ 117 | |   
+ 118 | |       // Fallback de seguran├ºa (caso ainda escape)
+ 119 | |       if (!text || text.length < 2) {
+ 120 | |         text = "Estou focado na sua NUTRI├ç├âO: revis├úo do card├ípio, substitui├º├Áes, pr├®/p├│s-treino e gr├íficos de macros/IG/CG. O que quer ajustar agora?";
+ 121 | |       }
+ 122 | |   
+ 123 | |       return NextResponse.json({ message: text });
+ 124 | |     } catch (e: any) {
+ 125 | |       // Fallback sem erro 500: mantemos a UX est├ível no chat
+ 126 | |       const safe = "Estou dispon├¡vel para sua NUTRI├ç├âO: revis├úo do card├ípio, substitui├º├Áes, pr├®/p├│s-treino e gr├íficos. Vamos focar nisso! ­ƒÆÜ";
+ 127 | |       return NextResponse.json({ message: safe }, { status: 200 });
+ 128 | |     }
+ 129 | `-> }
+     `----
+
+Caused by:
+    Syntax Error
+
+Import trace for requested module:
+./app/api/chat/route.ts
+
+./app/layout.tsx
+Error:   x `ssr: false` is not allowed with `next/dynamic` in Server Components. Please move it into a Client Component.
+    ,-[D:\NutriFitcoach\app\layout.tsx:8:1]
+  5 |     import dynamic from "next/dynamic";
+  6 |     
+  7 |     // ÔÜí LAZY LOAD - ChatBot carregado apenas quando necess├írio (n├úo vai no bundle inicial)
+  8 | ,-> const ChatBot = dynamic(() => import("@/components/shared/ChatBot"), {
+  9 | |     ssr: false,
+ 10 | |     loading: () => null, // Sem skeleton, apenas carrega silenciosamente
+ 11 | `-> });
+ 12 |     
+ 13 |     const MobileNav = dynamic(() => import("@/components/ui/MobileNav"), {
+ 14 |       ssr: false,
+    `----
+  x `ssr: false` is not allowed with `next/dynamic` in Server Components. Please move it into a Client Component.
+    ,-[D:\NutriFitcoach\app\layout.tsx:13:1]
+ 10 |       loading: () => null, // Sem skeleton, apenas carrega silenciosamente
+ 11 |     });
+ 12 |     
+ 13 | ,-> const MobileNav = dynamic(() => import("@/components/ui/MobileNav"), {
+ 14 | |     ssr: false,
+ 15 | `-> });
+ 16 |     
+ 17 |     export const metadata: Metadata = {
+ 18 |       title: "NutriFitCoach - Nutri├º├úo com IA",
+    `----
+
+Import trace for requested module:
+./app/layout.tsx
+
+./lib/ia-porcoes/ajustar-porcoes.ts
+Module not found: Can't resolve '../ai-client/unified-client'
+
+https://nextjs.org/docs/messages/module-not-found
+
+Import trace for requested module:
+./app/api/cardapio-avancado/route.ts
+
+./lib/substituicoes/substituicoes.ts
+Module not found: Can't resolve '../ai-client/unified-client'
+
+https://nextjs.org/docs/messages/module-not-found
+
+Import trace for requested module:
+./app/api/cardapio-avancado/route.ts
+
+
+> Build failed because of webpack errors

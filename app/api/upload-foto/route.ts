@@ -5,13 +5,13 @@ import { checkRateLimit } from "@/lib/security/rate-limit";
 import { validateUploadFile, sanitizeFilename } from "@/lib/security/validation";
 import { compressProgressPhoto } from "@/lib/image-compression";
 import { getServerSession } from "next-auth";
-import { authOptions } from "@/app/api/auth/[...nextauth]/route";
+import { authOptions } from "@/lib/auth";
 
 export async function POST(request: NextRequest) {
   try {
     // 🔒 RATE LIMITING
     const session = await getServerSession(authOptions);
-    const userEmail = session?.user?.email;
+    const userEmail = session?.user?.email || undefined;
 
     const rateLimitResponse = checkRateLimit(request, 'upload-foto', userEmail);
     if (rateLimitResponse) {
@@ -39,7 +39,7 @@ export async function POST(request: NextRequest) {
     const compressedBuffer = await compressProgressPhoto(buffer);
 
     // Salvar no public/uploads com nome sanitizado (sempre .webp)
-    const baseFilename = validation.sanitizedName.replace(/\.[^.]+$/, '');
+    const baseFilename = (validation.sanitizedName || 'upload').replace(/\.[^.]+$/, '');
     const safeFilename = `${Date.now()}-${baseFilename}.webp`;
     const filepath = path.join(process.cwd(), 'public/uploads', safeFilename);
 

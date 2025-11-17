@@ -2,7 +2,7 @@
 import { checkRateLimit } from "@/lib/security/rate-limit";
 import { validateImageBase64 } from "@/lib/security/validation";
 import { getServerSession } from "next-auth";
-import { authOptions } from "@/app/api/auth/[...nextauth]/route";
+import { authOptions } from "@/lib/auth";
 
 const OLLAMA = "http://127.0.0.1:11434/api/generate";
 const VISION_MODEL = process.env.OLLAMA_VISION_MODEL || "llava:latest";
@@ -11,7 +11,7 @@ export async function POST(req: NextRequest) {
   try {
     // 🔒 RATE LIMITING
     const session = await getServerSession(authOptions);
-    const userEmail = session?.user?.email;
+    const userEmail = session?.user?.email || undefined;
 
     const rateLimitResponse = checkRateLimit(req, 'vision', userEmail);
     if (rateLimitResponse) {

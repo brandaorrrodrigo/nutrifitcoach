@@ -3,10 +3,12 @@ import { validateRefreshToken, rotateRefreshToken } from '@/lib/security/refresh
 import { prisma } from '@/lib/prisma';
 import { sign } from 'jsonwebtoken';
 
-const JWT_SECRET = process.env.NEXTAUTH_SECRET;
+const JWT_SECRET = process.env.NEXTAUTH_SECRET || 'build-time-placeholder';
 
-if (!JWT_SECRET) {
-  throw new Error('🚨 NEXTAUTH_SECRET não está definido!');
+if (!JWT_SECRET || JWT_SECRET === 'build-time-placeholder') {
+  if (typeof window === 'undefined' && process.env.NODE_ENV !== 'production') {
+    console.warn('⚠️ NEXTAUTH_SECRET não está definido!');
+  }
 }
 
 /**

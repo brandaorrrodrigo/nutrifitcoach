@@ -2,7 +2,7 @@
 import { checkRateLimit } from "@/lib/security/rate-limit";
 import { validateChatMessage } from "@/lib/security/validation";
 import { getServerSession } from "next-auth";
-import { authOptions } from "@/app/api/auth/[...nextauth]/route";
+import { authOptions } from "@/lib/auth";
 
 const OLLAMA_URL = process.env.OLLAMA_URL || "http://127.0.0.1:11434";
 const OLLAMA_MODEL = process.env.OLLAMA_MODEL || "llama3:latest";
@@ -61,7 +61,7 @@ export async function POST(req: NextRequest) {
   try {
     // 🔒 RATE LIMITING
     const session = await getServerSession(authOptions);
-    const userEmail = session?.user?.email;
+    const userEmail = session?.user?.email || undefined;
 
     const rateLimitResponse = checkRateLimit(req, 'chat', userEmail);
     if (rateLimitResponse) {
@@ -91,7 +91,7 @@ ${user}
 `;
 
     // Chamada ao Ollama
-    const r = await fetch(\`\${OLLAMA_URL}/api/generate\`, {
+    const r = await fetch(`${OLLAMA_URL}/api/generate`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -109,7 +109,7 @@ ${user}
 
     if (!r.ok) {
       const errTxt = await r.text().catch(() => "Erro desconhecido");
-      throw new Error(\`Ollama HTTP \${r.status}: \${errTxt}\`);
+      throw new Error(`Ollama HTTP ${r.status}: ${errTxt}`);
     }
 
     const data = await r.json();

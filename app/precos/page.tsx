@@ -1,9 +1,9 @@
 ﻿'use client';
 
 import { useSearchParams } from 'next/navigation';
-import { useMemo } from 'react';
+import { useMemo, Suspense } from 'react';
 
-export default function PrecosPage() {
+function PrecosContent() {
   const sp = useSearchParams();
   const refSlug = sp.get('ref') || '';
 
@@ -308,5 +308,13 @@ export default function PrecosPage() {
 
       </div>
     </div>
+  );
+}
+
+export default function PrecosPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen flex items-center justify-center">Carregando...</div>}>
+      <PrecosContent />
+    </Suspense>
   );
 }

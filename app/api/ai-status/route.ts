@@ -1,34 +1,34 @@
 ﻿import { NextResponse } from 'next/server';
-import { getAIClient } from '@/lib/ai-client/unified-client';
 
 export async function GET() {
   try {
-    const aiClient = getAIClient();
-    
-    // Verificar status dos provedores
-    const status = await aiClient.checkStatus();
-    
-    // Listar modelos Ollama se disponível
-    let ollamaModels: string[] = [];
-    if (status.ollama) {
-      ollamaModels = await aiClient.listOllamaModels();
+    // Verificar disponibilidade dos provedores
+    const claudeAvailable = !!process.env.ANTHROPIC_API_KEY;
+    const ollamaUrl = process.env.OLLAMA_URL || 'http://localhost:11434';
+
+    let ollamaAvailable = false;
+    try {
+      const response = await fetch(`${ollamaUrl}/api/version`, {
+        signal: AbortSignal.timeout(5000)
+      });
+      ollamaAvailable = response.ok;
+    } catch {
+      ollamaAvailable = false;
     }
-    
-    const defaultProvider = process.env.DEFAULT_AI_PROVIDER || 'ollama';
-    const fallbackEnabled = process.env.AI_FALLBACK_ENABLED === 'true';
-    
+
     return NextResponse.json({
       success: true,
-      providers: status,
-      defaultProvider,
-      fallbackEnabled,
-      ollamaModels,
+      providers: {
+        claude: claudeAvailable,
+        ollama: ollamaAvailable
+      },
+      defaultProvider: claudeAvailable ? 'claude' : 'ollama',
       config: {
-        ollamaUrl: process.env.OLLAMA_BASE_URL || 'http://localhost:11434',
-        ollamaModel: process.env.OLLAMA_MODEL || 'llama3.1:8b',
+        ollamaUrl,
+        ollamaModel: process.env.OLLAMA_MODEL || 'llama3:latest',
       }
     });
-    
+
   } catch (error: any) {
     return NextResponse.json({
       success: false,

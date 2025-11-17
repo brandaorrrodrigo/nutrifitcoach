@@ -2,17 +2,7 @@
 import "./globals.css";
 import InstallPWA from "@/components/InstallPWA";
 import SessionProvider from "@/components/auth/SessionProvider";
-import dynamic from "next/dynamic";
-
-// ⚡ LAZY LOAD - ChatBot carregado apenas quando necessário (não vai no bundle inicial)
-const ChatBot = dynamic(() => import("@/components/shared/ChatBot"), {
-  ssr: false,
-  loading: () => null, // Sem skeleton, apenas carrega silenciosamente
-});
-
-const MobileNav = dynamic(() => import("@/components/ui/MobileNav"), {
-  ssr: false,
-});
+import { ClientComponents } from "@/components/ClientComponents";
 
 export const metadata: Metadata = {
   title: "NutriFitCoach - Nutrição com IA",
@@ -60,9 +50,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body className="min-h-screen">
         <SessionProvider>
           {children}
-          <MobileNav />
           <InstallPWA />
-          <ChatBot />
+          <ClientComponents />
         </SessionProvider>
         <script
           dangerouslySetInnerHTML={{

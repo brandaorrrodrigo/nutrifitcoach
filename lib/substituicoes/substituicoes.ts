@@ -1,4 +1,4 @@
-﻿import { getAIClient, AIMessage } from '../ai-client/unified-client';
+﻿import { askAI } from '../ai-client/unified-client';
 import { ALIMENTOS_DATABASE } from '@/lib/diet-profiles/alimentos-database';
 
 interface Substituicao {
@@ -8,7 +8,40 @@ interface Substituicao {
   razao: string;
 }
 
-// ... [MANTER TODO O CÓDIGO DE SUBSTITUIÇÕES EQUIVALENTES] ...
+// Encontrar substituições para um alimento
+export function encontrarSubstituicoes(alimento: string, limite: number = 5): Substituicao[] {
+  const alimentoLower = alimento.toLowerCase();
+  const substituicoes: Substituicao[] = [];
+
+  // Buscar no database de alimentos
+  for (const item of ALIMENTOS_DATABASE) {
+    if (item.nome.toLowerCase().includes(alimentoLower) ||
+        alimentoLower.includes(item.nome.toLowerCase())) {
+      continue; // Pular o mesmo alimento
+    }
+
+    substituicoes.push({
+      original: alimento,
+      substituto: item.nome,
+      similaridade: 0.8,
+      razao: 'Similaridade nutricional'
+    });
+
+    if (substituicoes.length >= limite) break;
+  }
+
+  return substituicoes;
+}
+
+// Substituir um alimento em uma receita/cardápio
+export function substituirAlimento(
+  texto: string,
+  original: string,
+  substituto: string
+): string {
+  const regex = new RegExp(original, 'gi');
+  return texto.replace(regex, substituto);
+}
 
 // IA para substituições personalizadas - ATUALIZADO
 export async function sugerirSubstituicaoComIA(
@@ -16,9 +49,8 @@ export async function sugerirSubstituicaoComIA(
   motivo: string,
   perfil_dieta: string,
   preferencias: string[],
-  provider?: 'claude' | 'ollama'
 ): Promise<string[]> {
-  
+
   const prompt = `Você é um nutricionista expert.
 
 ALIMENTO A SUBSTITUIR: ${alimento}
@@ -35,25 +67,15 @@ Sugira 3 substituições adequadas que:
 RESPONDA APENAS COM ARRAY JSON:
 ["Substituto 1", "Substituto 2", "Substituto 3"]`;
 
-  const aiClient = getAIClient();
-  
-  const messages: AIMessage[] = [
-    {
-      role: 'user',
-      content: prompt
-    }
-  ];
-
-  const response = await aiClient.chat(messages, {
-    provider: provider,
-    maxTokens: 500,
-    temperature: 0.7
+  const response = await askAI({
+    prompt,
+    model: 'claude-3-5-sonnet',
+    json: true
   });
 
-  const jsonMatch = response.content.match(/\[[\s\S]*\]/);
-  if (!jsonMatch) return [];
+  if (Array.isArray(response)) {
+    return response;
+  }
 
-  return JSON.parse(jsonMatch[0]);
+  return [];
 }
-
-// ... [MANTER RESTO DO CÓDIGO] ...

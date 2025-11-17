@@ -3,7 +3,7 @@ import { searchEmbedding } from "@/lib/rag/search";
 import { checkRateLimit } from "@/lib/security/rate-limit";
 import { validateRAGQuery } from "@/lib/security/validation";
 import { getServerSession } from "next-auth";
-import { authOptions } from "@/app/api/auth/[...nextauth]/route";
+import { authOptions } from "@/lib/auth";
 
 import fs from "fs/promises";
 import path from "path";
@@ -44,7 +44,7 @@ export async function POST(req: NextRequest) {
   try {
     // 🔒 RATE LIMITING
     const session = await getServerSession(authOptions);
-    const userEmail = session?.user?.email;
+    const userEmail = session?.user?.email || undefined;
 
     const rateLimitResponse = checkRateLimit(req, "rag", userEmail);
     if (rateLimitResponse) {
