@@ -1,4 +1,6 @@
-﻿export default function OfflinePage() {
+﻿'use client';
+
+export default function OfflinePage() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-cyan-50 via-green-50 to-purple-50 flex items-center justify-center px-4">
       <div className="text-center max-w-md">
