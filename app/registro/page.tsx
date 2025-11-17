@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
@@ -19,11 +19,28 @@ export default function RegistroPage() {
     setError('');
 
     try {
-      // 1. Criar conta
+      // ✅ Validação básica no frontend
+      if (!nome.trim() || nome.trim().length < 2) {
+        throw new Error('Nome deve ter pelo menos 2 caracteres');
+      }
+
+      if (!email.trim() || !email.includes('@')) {
+        throw new Error('Email inválido');
+      }
+
+      if (password.length < 6) {
+        throw new Error('A senha deve ter no mínimo 6 caracteres');
+      }
+
+      // 1️⃣ Criar conta na API
       const res = await fetch('/api/auth/register', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ nome, email, password }),
+        body: JSON.stringify({
+          nome: nome.trim(),
+          email: email.trim().toLowerCase(),
+          password
+        }),
       });
 
       const data = await res.json();
@@ -32,24 +49,34 @@ export default function RegistroPage() {
         throw new Error(data.error || 'Erro ao criar conta');
       }
 
-      // 2. Fazer login automaticamente
+      console.log('✅ Conta criada:', data);
+
+      // 2️⃣ Fazer login automaticamente após registro bem-sucedido
       const result = await signIn('credentials', {
-        email,
+        email: email.trim().toLowerCase(),
         password,
         redirect: false
       });
 
       if (result?.error) {
-        throw new Error('Conta criada, mas erro ao fazer login automático');
+        console.error('Erro ao fazer login automático:', result.error);
+        // ⚠️ Conta foi criada, mas login falhou - redirecionar para login manual
+        setError('Conta criada com sucesso! Redirecionando para login...');
+        setTimeout(() => {
+          router.push('/login?success=registered');
+        }, 2000);
+        return;
       }
 
       if (result?.ok) {
-        // Redirecionar para dashboard
+        console.log('✅ Login automático bem-sucedido');
+        // 3️⃣ Redirecionar para dashboard
         router.push('/dashboard');
         router.refresh();
       }
     } catch (error: any) {
-      setError(error.message);
+      console.error('❌ Erro no registro:', error);
+      setError(error.message || 'Erro ao criar conta. Tente novamente.');
     } finally {
       setLoading(false);
     }
@@ -68,44 +95,66 @@ export default function RegistroPage() {
         <div className="bg-white rounded-3xl shadow-2xl p-8">
           <form onSubmit={handleSubmit} className="space-y-6">
             <div>
-              <label className="block font-semibold mb-2">Nome Completo</label>
+              <label htmlFor="nome" className="block font-semibold mb-2">
+                Nome Completo
+              </label>
               <input
+                id="nome"
                 type="text"
                 value={nome}
                 onChange={(e) => setNome(e.target.value)}
                 required
-                className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-purple-500"
+                minLength={2}
+                maxLength={100}
+                className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
                 placeholder="Seu nome"
+                disabled={loading}
               />
             </div>
 
             <div>
-              <label className="block font-semibold mb-2">Email</label>
+              <label htmlFor="email" className="block font-semibold mb-2">
+                Email
+              </label>
               <input
+                id="email"
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
-                className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-purple-500"
+                className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
                 placeholder="seu@email.com"
+                disabled={loading}
               />
             </div>
 
             <div>
-              <label className="block font-semibold mb-2">Senha</label>
+              <label htmlFor="password" className="block font-semibold mb-2">
+                Senha
+              </label>
               <input
+                id="password"
                 type="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
                 minLength={6}
-                className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-purple-500"
+                maxLength={100}
+                className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
                 placeholder="Mínimo 6 caracteres"
+                disabled={loading}
               />
+              <p className="text-sm text-gray-500 mt-1">
+                ⚠️ Recomendado: use letras, números e caracteres especiais
+              </p>
             </div>
 
             {error && (
-              <div className="bg-red-50 border-2 border-red-200 text-red-700 px-4 py-3 rounded-xl">
+              <div className={`border-2 px-4 py-3 rounded-xl ${
+                error.includes('sucesso')
+                  ? 'bg-green-50 border-green-200 text-green-700'
+                  : 'bg-red-50 border-red-200 text-red-700'
+              }`}>
                 {error}
               </div>
             )}
@@ -113,7 +162,7 @@ export default function RegistroPage() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full bg-gradient-to-r from-cyan-500 via-green-500 to-purple-600 text-white py-4 rounded-xl font-bold text-lg hover:shadow-xl transition-all disabled:opacity-50"
+              className="w-full bg-gradient-to-r from-cyan-500 via-green-500 to-purple-600 text-white py-4 rounded-xl font-bold text-lg hover:shadow-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {loading ? 'Criando conta...' : 'Criar Conta Grátis'}
             </button>
