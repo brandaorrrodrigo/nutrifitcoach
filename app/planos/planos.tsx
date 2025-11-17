@@ -8,7 +8,7 @@ export default function PlanosPage() {
   const handleCheckout = async (priceId: string) => {
     try {
       setLoading(true);
-      const res = await fetch('/api/checkout', {
+      const res = await fetch('/api/create-checkout-session', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ priceId }),
