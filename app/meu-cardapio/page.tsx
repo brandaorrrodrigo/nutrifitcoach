@@ -1,11 +1,11 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { Suspense, useEffect, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { createClient } from '@supabase/supabase-js';
 import { MealPlan, MealTimeLabels } from '@/lib/nutrition/types';
 
-export default function MeuCardapioPage() {
+function MeuCardapioContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const planId = searchParams.get('planId');
@@ -345,5 +345,20 @@ export default function MeuCardapioPage() {
         }
       `}</style>
     </div>
+  );
+}
+
+export default function MeuCardapioPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-gradient-to-br from-green-50 via-white to-blue-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-green-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">Carregando seu cardápio...</p>
+        </div>
+      </div>
+    }>
+      <MeuCardapioContent />
+    </Suspense>
   );
 }
