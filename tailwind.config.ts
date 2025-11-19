@@ -74,6 +74,24 @@ const config: Config = {
             900: '#212529', // Principal
           },
         },
+        // 🌸 CORES FEMININAS - NFC Hormonal Engine
+        lavender: {
+          50: '#faf5ff',
+          100: '#f3e8ff',
+          200: '#e9d5ff',
+          300: '#d8b4fe',
+          400: '#c084fc',
+          500: '#a855f7',
+          600: '#9333ea',
+        },
+        peach: {
+          50: '#fff7ed',
+          100: '#ffedd5',
+          200: '#fed7aa',
+          300: '#fdba74',
+          400: '#fb923c',
+          500: '#f97316',
+        },
       },
       // 📏 ESPAÇAMENTOS PADRONIZADOS
       spacing: {

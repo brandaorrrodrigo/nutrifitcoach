@@ -60,6 +60,7 @@ model AppUser {
   enemSimulados        EnemSimulado[]
   userGamificationEnem UserGamificationEnem?
   refreshTokens        UserRefreshToken[]
+  femaleHormonalProfile FemaleHormonalProfile?
 }
 
 model UserFollow {
@@ -359,4 +360,117 @@ model UserRefreshToken {
 
   @@index([user_id])
   @@index([token])
+}
+
+// ============================================
+// NFC HORMONAL ENGINE - Perfil Hormonal Feminino
+// ============================================
+
+enum CycleStatus {
+  regular_28_32
+  irregular
+  no_period_surgery
+  no_period_iud_hormonal
+  no_period_contraceptive
+  no_period_menopause
+}
+
+enum ContraceptiveType {
+  combined_pill
+  progesterone_only_pill
+  mirena_iud
+  copper_iud
+  vaginal_ring
+  hormonal_patch
+  implant
+  none
+}
+
+enum HormonalCondition {
+  pcos
+  endometriosis
+  hypothyroidism
+  hashimoto
+  insulin_resistance
+  intense_pms
+  none
+}
+
+enum HormoneTherapy {
+  none
+  estrogen
+  progesterone
+  testosterone
+  complete_hrt
+  phytotherapy
+}
+
+enum MenopauseStatus {
+  none
+  climacteric
+  confirmed_menopause
+}
+
+enum GeneralSymptomFrequency {
+  never
+  sometimes
+  frequently
+  always
+}
+
+enum FemaleObjective {
+  weight_loss
+  muscle_gain
+  body_recomposition
+  reduce_hormonal_symptoms
+  improve_energy
+  control_insulin_resistance
+}
+
+model FemaleHormonalProfile {
+  id        String   @id @default(uuid())
+  user      AppUser  @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  user_id   String   @unique
+
+  // T1 - Idade
+  age       Int
+
+  // T2 - Estado Menstrual
+  cycle_status CycleStatus
+
+  // T3 - Anticoncepcional
+  contraceptive_type    ContraceptiveType
+  contraceptive_effects String[] // ganho_peso, queda_libido, humor, retencao, apetite
+
+  // T4 - Condições Hormonais
+  hormonal_conditions HormonalCondition[]
+
+  // T5 - Reposição Hormonal
+  hormone_therapy HormoneTherapy
+
+  // T6 - Menopausa/Climatério
+  menopause_status  MenopauseStatus
+  menopause_symptoms String[] // ondas_calor, insonia, ansiedade, secura_vaginal, peso_abdominal, perda_massa, fadiga
+
+  // T7 - Sintomas Gerais (JSONB para flexibilidade)
+  general_symptoms Json // { inchaço: "sempre", humor: "frequentemente", ... }
+
+  // T8 - Objetivo
+  objective FemaleObjective
+
+  // Perfil calculado automaticamente
+  hormonal_profile     String? // classificação automática
+  hormonal_subprofile  String? // fase do ciclo, etc
+  nutritional_adjustments Json? // array de ajustes
+  sensitivities        Json? // array de sensibilidades
+  alerts               Json? // array de alertas
+  critical_points      Json? // pontos críticos
+
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+
+  @@index([user_id])
+  @@index([age])
+  @@index([cycle_status])
+  @@index([menopause_status])
 }
