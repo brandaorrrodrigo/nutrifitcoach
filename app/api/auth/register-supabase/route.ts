@@ -3,39 +3,33 @@ import { createClient } from '@supabase/supabase-js';
 import bcrypt from 'bcryptjs';
 import { v4 as uuidv4 } from 'uuid';
 
+/**
+ * POST /api/auth/register-supabase
+ *
+ * Cria novo usuário usando Supabase Client (alternativa ao Prisma)
+ */
 export async function POST(request: Request) {
   try {
     const { nome, email, password } = await request.json();
 
-    // ✅ Validação básica de campos
+    // ✅ Validação básica
     if (!nome || !email || !password) {
       return NextResponse.json({ error: 'Preencha todos os campos' }, { status: 400 });
     }
 
-    // ✅ Validação de nome
     if (nome.trim().length < 2) {
       return NextResponse.json({ error: 'Nome deve ter pelo menos 2 caracteres' }, { status: 400 });
     }
 
-    // ✅ Validação de email
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(email)) {
       return NextResponse.json({ error: 'Email inválido' }, { status: 400 });
     }
 
-    // ✅ Validação de senha (mínimo 6 caracteres para UX, mas recomenda-se 8+)
     if (password.length < 6) {
       return NextResponse.json({
         error: 'A senha deve ter no mínimo 6 caracteres'
       }, { status: 400 });
-    }
-
-    // ⚠️ Recomendação de senha forte (não bloqueia, apenas avisa)
-    const hasLetter = /[a-zA-Z]/.test(password);
-    const hasNumber = /\d/.test(password);
-
-    if (!hasLetter || !hasNumber) {
-      console.warn('⚠️ Senha fraca detectada para:', email);
     }
 
     // ✅ Criar cliente Supabase
@@ -56,12 +50,12 @@ export async function POST(request: Request) {
       }
     });
 
-    // ✅ Verificar se o usuário já existe
+    // ✅ Verificar se usuário já existe
     const { data: existingUser } = await supabase
       .from('AppUser')
       .select('id')
       .eq('email', email.toLowerCase().trim())
-      .maybeSingle();
+      .single();
 
     if (existingUser) {
       return NextResponse.json({
@@ -69,13 +63,13 @@ export async function POST(request: Request) {
       }, { status: 400 });
     }
 
-    // ✅ Hash da senha com bcrypt (salt rounds = 10)
+    // ✅ Hash da senha
     const hashedPassword = await bcrypt.hash(password, 10);
 
     // ✅ Gerar UUID para o id
     const userId = uuidv4();
 
-    // ✅ Criar usuário no banco com TODOS os campos obrigatórios
+    // ✅ Criar usuário
     const { data: newUser, error: createError } = await supabase
       .from('AppUser')
       .insert({
@@ -95,14 +89,6 @@ export async function POST(request: Request) {
 
     if (createError) {
       console.error('❌ Erro ao criar usuário:', createError);
-
-      // Tratamento específico de erros
-      if (createError.code === '23505') { // Unique constraint violation
-        return NextResponse.json({
-          error: 'Este email já está cadastrado'
-        }, { status: 400 });
-      }
-
       return NextResponse.json({
         error: 'Erro ao criar conta. Tente novamente.'
       }, { status: 500 });
@@ -114,7 +100,7 @@ export async function POST(request: Request) {
       name: newUser.name
     });
 
-    // ✅ Retornar resposta de sucesso (status 201 = Created)
+    // ✅ Retornar sucesso
     return NextResponse.json({
       success: true,
       message: 'Conta criada com sucesso!',
@@ -128,18 +114,10 @@ export async function POST(request: Request) {
     }, { status: 201 });
 
   } catch (error: any) {
-    console.error('❌ Erro ao criar usuário:', {
-      message: error.message,
-      stack: error.stack
-    });
-
-    // ✅ Erro genérico com mais informações em dev
-    const errorMessage = process.env.NODE_ENV === 'development'
-      ? `Erro ao criar conta: ${error.message}`
-      : 'Erro ao criar conta. Tente novamente.';
+    console.error('❌ Erro ao criar usuário:', error);
 
     return NextResponse.json({
-      error: errorMessage
+      error: 'Erro ao criar conta. Tente novamente.'
     }, { status: 500 });
   }
 }
