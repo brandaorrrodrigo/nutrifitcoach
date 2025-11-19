@@ -43,36 +43,53 @@ Clique em **"Create new project"** e aguarde 2-3 minutos enquanto o Supabase pro
 
 ## 🔗 PARTE 2: Obter a Connection String
 
-### Passo 3: Copiar a Connection String
+### Passo 3: Copiar a Connection String (ATENÇÃO AOS DETALHES!)
 
 Após o projeto ser criado:
 
 1. No painel esquerdo, clique em **"Settings"** (⚙️ Configurações)
 2. Clique em **"Database"**
 3. Role até a seção **"Connection string"**
-4. Selecione a aba **"URI"** (ou "Postgres")
-5. Clique em **"Session mode"** (recomendado para aplicações serverless)
-6. Você verá algo assim:
+4. **IMPORTANTE**: Você verá 3 abas:
+   - **"Postgres"** ❌ NÃO use esta
+   - **"Session mode"** ✅ **USE ESTA!**
+   - **"Transaction mode"** ❌ NÃO use esta
+
+5. Clique na aba **"Session mode"**
+6. Você verá uma URI que tem este formato (ATENÇÃO: usa porta **6543**, não 5432):
 
 ```
-postgresql://postgres.xxxxxxxxxxxxx:[YOUR-PASSWORD]@aws-0-sa-east-1.pooler.supabase.com:5432/postgres
+postgresql://postgres.[POOL-ID]:[YOUR-PASSWORD]@aws-0-sa-east-1.pooler.supabase.com:6543/postgres
 ```
 
-7. **COPIE** essa string completa
+⚠️ **ATENÇÃO**:
+- A porta é **6543** (Session pooler), NÃO 5432 (direct connection)
+- O host é `aws-0-[region].pooler.supabase.com` (tem `.pooler` no meio)
+- O usuário tem formato `postgres.[POOL-ID]`, NÃO apenas `postgres`
+- O `[POOL-ID]` é gerado pelo Supabase e é diferente do ID do projeto
+
+7. **COPIE** essa string completa usando o botão de copiar
 8. **SUBSTITUA** `[YOUR-PASSWORD]` pela senha que você criou no Passo 2
 
-**Exemplo final:**
+**Exemplo final (Session mode - CORRETO):**
 ```
-postgresql://postgres.abcdefghijklm:Minha$enh@Forte123!@aws-0-sa-east-1.pooler.supabase.com:5432/postgres
-```
-
-9. **ADICIONE** `?sslmode=require` no final da URL:
-
-```
-postgresql://postgres.abcdefghijklm:Minha$enh@Forte123!@aws-0-sa-east-1.pooler.supabase.com:5432/postgres?sslmode=require
+postgresql://postgres.abcdefghijklm:Minha$enh@Forte123!@aws-0-sa-east-1.pooler.supabase.com:6543/postgres?sslmode=require
 ```
 
-⚠️ **IMPORTANTE**: O `?sslmode=require` é **obrigatório** para conexões seguras em produção!
+**❌ ERRADO (Direct connection - NÃO funciona com Vercel/Next.js):**
+```
+postgresql://postgres:Minha$enh@Forte123!@db.abcdefghijklm.supabase.co:5432/postgres
+```
+
+9. **ADICIONE** `?sslmode=require` no final da URL se não estiver lá:
+
+```
+postgresql://postgres.[POOL-ID]:SuaSenha@aws-0-sa-east-1.pooler.supabase.com:6543/postgres?sslmode=require
+```
+
+⚠️ **CRÍTICO**: Se você não usar a Session mode URL (porta 6543 com pooler), vai dar erro:
+- `Can't reach database server` (conexão direta bloqueada)
+- `Tenant or user not found` (formato incorreto do usuário)
 
 ---
 
@@ -276,10 +293,29 @@ Para visualizar as tabelas criadas:
 
 ### Erro: "P1001: Can't reach database server"
 
-**Solução:**
-- Verifique se o projeto Supabase está **ativo** (não pausado)
-- Verifique se a região/host está correta
-- Tente usar **"Session mode"** ao invés de "Transaction mode"
+**Causa**: Você está usando a connection string **DIRETA** (porta 5432) ao invés da **POOLER** (porta 6543).
+
+**Solução DEFINITIVA**:
+1. Vá no Supabase Dashboard > Settings > Database > Connection string
+2. Clique na aba **"Session mode"** (NÃO "Postgres")
+3. Copie a URI que usa porta **6543** e tem `.pooler.supabase.com`
+4. O formato correto é: `postgresql://postgres.[POOL-ID]:senha@aws-0-region.pooler.supabase.com:6543/postgres`
+5. Atualize sua `DATABASE_URL` no `.env.local` E na Vercel
+
+**Por que o direct connection (porta 5432) não funciona?**
+- Supabase bloqueia conexões diretas por segurança
+- Next.js em Vercel é serverless (precisa do pooler)
+- O pooler (porta 6543) gerencia conexões de forma eficiente para serverless
+
+### Erro: "FATAL: Tenant or user not found"
+
+**Causa**: Formato incorreto da connection string do pooler.
+
+**Solução**:
+- NÃO tente construir a URL manualmente
+- Copie a URL EXATA do Supabase Dashboard > Session mode
+- O usuário deve ser `postgres.[POOL-ID]` (não apenas `postgres`)
+- Exemplo CORRETO: `postgresql://postgres.yjcelqyndhvmcsiihmko:senha@aws-0-sa-east-1.pooler.supabase.com:6543/postgres`
 
 ### Erro ao rodar seed: "Nenhum arquivo de questões encontrado"
 

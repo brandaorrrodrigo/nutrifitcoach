@@ -13,7 +13,8 @@
       "Bash(sqlite3:*)",
       "Bash(npm run dev:*)",
       "Bash(curl:*)",
-      "Bash(node -e:*)"
+      "Bash(node -e:*)",
+      "Bash(\"C:\\Users\\NFC\\Desktop\\petcontrol-pro\\types\\next-auth.d.ts\")"
     ],
     "deny": [],
     "ask": []
