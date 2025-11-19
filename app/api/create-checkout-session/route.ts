@@ -1,10 +1,20 @@
 import { NextResponse } from 'next/server';
 import Stripe from 'stripe';
 
-// ✅ Inicializar Stripe com chave secreta
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || '', {
-  apiVersion: '2025-10-29.clover',
-});
+// ✅ Lazy initialization - só inicializa quando usado
+let stripe: Stripe | null = null;
+
+function getStripeClient(): Stripe {
+  if (!stripe && process.env.STRIPE_SECRET_KEY) {
+    stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
+      apiVersion: '2025-10-29.clover',
+    });
+  }
+  if (!stripe) {
+    throw new Error('Stripe not configured');
+  }
+  return stripe;
+}
 
 /**
  * POST /api/create-checkout-session
@@ -63,6 +73,9 @@ export async function POST(request: Request) {
       );
     }
 
+    // ✅ Obter cliente Stripe (lazy initialization)
+    const stripeClient = getStripeClient();
+
     // ✅ Definir URLs de sucesso e cancelamento
     const baseUrl = process.env.NEXT_PUBLIC_URL || process.env.NEXTAUTH_URL || 'http://localhost:3000';
     const successUrl = `${baseUrl}/dashboard?success=true`;
@@ -76,7 +89,7 @@ export async function POST(request: Request) {
     });
 
     // ✅ Criar sessão de checkout do Stripe
-    const session = await stripe.checkout.sessions.create({
+    const session = await stripeClient.checkout.sessions.create({
       mode: 'subscription',
       payment_method_types: ['card'],
       line_items: [

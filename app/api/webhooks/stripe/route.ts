@@ -3,14 +3,35 @@ import { headers } from 'next/headers';
 import Stripe from 'stripe';
 import { prisma } from '@/lib/prisma';
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || 'sk_test_placeholder', {
-  apiVersion: '2025-10-29.clover',
-});
+// ✅ Lazy initialization - só inicializa quando usado
+let stripe: Stripe | null = null;
 
-const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET || 'whsec_placeholder';
+function getStripeClient(): Stripe {
+  if (!stripe && process.env.STRIPE_SECRET_KEY) {
+    stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
+      apiVersion: '2025-10-29.clover',
+    });
+  }
+  if (!stripe) {
+    throw new Error('Stripe not configured');
+  }
+  return stripe;
+}
 
 export async function POST(request: Request) {
   try {
+    // ✅ Validação das chaves do Stripe
+    if (!process.env.STRIPE_SECRET_KEY || !process.env.STRIPE_WEBHOOK_SECRET) {
+      console.error('❌ Stripe não configurado!');
+      return NextResponse.json(
+        { error: 'Stripe webhook not configured' },
+        { status: 500 }
+      );
+    }
+
+    const stripeClient = getStripeClient();
+    const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
+
     const body = await request.text();
     const headersList = await headers();
     const signature = headersList.get('stripe-signature')!;
@@ -18,7 +39,7 @@ export async function POST(request: Request) {
     let event: Stripe.Event;
 
     try {
-      event = stripe.webhooks.constructEvent(body, signature, webhookSecret);
+      event = stripeClient.webhooks.constructEvent(body, signature, webhookSecret);
     } catch (err: any) {
       console.error('Webhook signature verification failed:', err.message);
       return NextResponse.json({ error: 'Invalid signature' }, { status: 400 });
