@@ -129,6 +129,7 @@ export default function AnamneseNutricionalPage() {
       const response = await fetch('/api/nutrition/generate-meal-plan', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        credentials: 'include', // Importante: envia cookies de sessão
         body: JSON.stringify({
           nutritionalProfile: profileData,
           daysCount: 1
