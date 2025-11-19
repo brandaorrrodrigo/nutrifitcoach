@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
+import { authOptions } from '@/lib/auth';
 import { createClient } from '@supabase/supabase-js';
 import { calculateMacros } from '@/lib/nutrition/macro-calculator';
 import { generateMealPlan } from '@/lib/nutrition/meal-plan-generator';
@@ -13,7 +14,7 @@ import { NutritionalProfileData } from '@/lib/nutrition/types';
 export async function POST(request: Request) {
   try {
     // Verificar autenticação
-    const session = await getServerSession();
+    const session = await getServerSession(authOptions);
     if (!session?.user?.email) {
       return NextResponse.json({ error: 'Não autenticado' }, { status: 401 });
     }
