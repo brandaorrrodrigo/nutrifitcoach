@@ -143,7 +143,8 @@ export default function AnamneseNutricionalPage() {
       }
 
       // Redirecionar para página de visualização
-      router.push(`/meu-cardapio?planId=${data.mealPlan.id}`);
+      // Redirecionar para fotos de evolução após gerar cardápio
+      router.push('/fotos-evolucao');
 
     } catch (err: any) {
       setError(err.message || 'Erro ao gerar cardápio');

@@ -202,10 +202,10 @@ export default function DashboardPage() {
             <Link href="/minha-anamnese" className="px-4 py-2 text-gray-700 font-semibold hover:text-purple-600">🏥</Link>
             <Link href="/progresso" className="px-4 py-2 text-gray-700 font-semibold hover:text-purple-600">📈</Link>
             {/* FOTOS */}
-            <Link href="/minhas-fotos" className="bg-gradient-to-br from-pink-500 to-rose-600 rounded-2xl p-6 text-white hover:shadow-2xl transition-all">
+            <Link href="/fotos-evolucao" className="bg-gradient-to-br from-pink-500 to-rose-600 rounded-2xl p-6 text-white hover:shadow-2xl transition-all">
               <div className="text-5xl mb-3">📸</div>
-              <h3 className="text-xl font-bold mb-2">Minhas Fotos</h3>
-              <p className="opacity-90">Ver evolução visual</p>
+              <h3 className="text-xl font-bold mb-2">Fotos de Evolução</h3>
+              <p className="opacity-90">Acompanhe seu progresso</p>
             </Link>
             <button
               onClick={handleDownloadPDF}

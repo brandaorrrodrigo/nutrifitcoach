@@ -77,8 +77,8 @@ export async function POST(request: Request) {
     const stripeClient = getStripeClient();
 
     // ✅ Definir URLs de sucesso e cancelamento
-    const baseUrl = process.env.NEXT_PUBLIC_URL || process.env.NEXTAUTH_URL || 'http://localhost:3000';
-    const successUrl = `${baseUrl}/dashboard?success=true`;
+    const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || process.env.NEXT_PUBLIC_URL || process.env.NEXTAUTH_URL || 'https://www.nutrifitcoach.com.br';
+    const successUrl = `${baseUrl}/nfc/anamnese?session_id={CHECKOUT_SESSION_ID}`;
     const cancelUrl = `${baseUrl}/planos?canceled=true`;
 
     console.log('💳 Criando sessão de checkout...', {

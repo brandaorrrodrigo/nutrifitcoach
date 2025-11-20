@@ -14,7 +14,8 @@
       "Bash(npm run dev:*)",
       "Bash(curl:*)",
       "Bash(node -e:*)",
-      "Bash(\"C:\\Users\\NFC\\Desktop\\petcontrol-pro\\types\\next-auth.d.ts\")"
+      "Bash(\"C:\\Users\\NFC\\Desktop\\petcontrol-pro\\types\\next-auth.d.ts\")",
+      "Bash(mkdir:*)"
     ],
     "deny": [],
     "ask": []

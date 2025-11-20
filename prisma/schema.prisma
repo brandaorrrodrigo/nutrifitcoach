@@ -36,6 +36,13 @@ enum MealType {
   postworkout
 }
 
+enum ProgressPhotoType {
+  frontal
+  posterior
+  lado_direito
+  lado_esquerdo
+}
+
 model AppUser {
   id           String   @id @default(uuid())
   email        String   @unique
@@ -61,6 +68,8 @@ model AppUser {
   userGamificationEnem UserGamificationEnem?
   refreshTokens        UserRefreshToken[]
   femaleHormonalProfile FemaleHormonalProfile?
+  progressPhotos       ProgressPhoto[]
+  progressSessions     ProgressSession[]
 }
 
 model UserFollow {
@@ -473,4 +482,93 @@ model FemaleHormonalProfile {
   @@index([age])
   @@index([cycle_status])
   @@index([menopause_status])
+}
+
+// ============================================
+// PROGRESS PHOTOS - Fotos de Evolução
+// ============================================
+
+model ProgressPhoto {
+  id              String             @id @default(uuid())
+  user            AppUser            @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  user_id         String
+  session         ProgressSession    @relation(fields: [session_id], references: [id], onDelete: Cascade)
+  session_id      String
+  photo_type      ProgressPhotoType
+
+  // URLs das imagens
+  original_url    String
+  watermarked_url String
+  thumb_url       String?
+
+  // Metadados da sessão
+  taken_at         DateTime
+  weight_kg        Decimal   @db.Decimal(5, 2)
+  height_cm        Decimal   @db.Decimal(5, 2)
+  age_years        Int
+  body_fat_percent Decimal?  @db.Decimal(4, 2)
+
+  // Metadados técnicos
+  width            Int?
+  height           Int?
+  file_size_bytes  Int?
+  sha256           String?
+
+  // Visibilidade e compartilhamento
+  visibility      Visibility @default(private)
+  shared_to       String[]   @default([])
+
+  // Análise futura (rede social)
+  likes_count     Int        @default(0)
+  comments_count  Int        @default(0)
+  shares_count    Int        @default(0)
+
+  created_at DateTime @default(now())
+  updated_at DateTime @default(now())
+
+  @@unique([session_id, photo_type])
+  @@index([user_id])
+  @@index([session_id])
+  @@index([taken_at])
+  @@index([user_id, session_id])
+}
+
+model ProgressSession {
+  id           String   @id @default(uuid())
+  user         AppUser  @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  user_id      String
+  session_date DateTime
+
+  // Metadados da sessão
+  weight_kg        Decimal  @db.Decimal(5, 2)
+  height_cm        Decimal  @db.Decimal(5, 2)
+  age_years        Int
+  body_fat_percent Decimal? @db.Decimal(4, 2)
+
+  // Cálculos automáticos
+  bmi           Decimal? @db.Decimal(4, 2)
+  lean_mass_kg  Decimal? @db.Decimal(5, 2)
+  fat_mass_kg   Decimal? @db.Decimal(5, 2)
+
+  // Comparação com sessão anterior
+  weight_change_kg  Decimal? @db.Decimal(5, 2)
+  bf_change_percent Decimal? @db.Decimal(4, 2)
+  days_since_last   Int?
+
+  // Status da sessão
+  is_complete  Boolean @default(false)
+  photos_count Int     @default(0)
+
+  // Notas do usuário
+  notes String?
+
+  // Relação com fotos
+  photos ProgressPhoto[]
+
+  created_at DateTime @default(now())
+  updated_at DateTime @default(now())
+
+  @@index([user_id])
+  @@index([session_date])
+  @@index([user_id, session_date(sort: Desc)])
 }

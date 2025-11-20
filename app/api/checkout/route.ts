@@ -38,17 +38,29 @@ export async function POST(request: Request) {
     // ✅ Obter cliente Stripe
     const stripeClient = getStripeClient();
 
+    // ✅ Definir URLs de sucesso e cancelamento
+    const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || process.env.NEXT_PUBLIC_URL || 'https://www.nutrifitcoach.com.br';
+    const successUrl = `${baseUrl}/nfc/anamnese?session_id={CHECKOUT_SESSION_ID}`;
+    const cancelUrl = `${baseUrl}/planos?canceled=true`;
+
     console.log('⏳ Chamando Stripe API...');
     const session = await stripeClient.checkout.sessions.create({
       mode: 'subscription',
       payment_method_types: ['card'],
       line_items: [{ price: priceId, quantity: 1 }],
-      success_url: `${process.env.NEXT_PUBLIC_URL}/pagamento-sucesso?success=true&session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url: `${process.env.NEXT_PUBLIC_URL}/planos?canceled=true`,
-      customer_email: email || 'teste@email.com',
+      success_url: successUrl,
+      cancel_url: cancelUrl,
+      customer_email: email || undefined,
       subscription_data: {
         trial_period_days: 15,
+        metadata: {
+          userId: userId || '',
+        },
       },
+      metadata: {
+        userId: userId || '',
+      },
+      allow_promotion_codes: true,
     });
 
     console.log('✅ Session criada!', session.id);
