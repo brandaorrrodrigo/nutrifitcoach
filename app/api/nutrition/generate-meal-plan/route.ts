@@ -106,14 +106,21 @@ export async function POST(request: Request) {
       updated_at: new Date().toISOString()
     };
 
+    // Verificar se perfil já existe
+    const { data: existingProfile } = await supabase
+      .from('NutritionalProfile')
+      .select('id')
+      .eq('user_id', user.id)
+      .maybeSingle();
+
+    const profileId = existingProfile?.id || uuidv4();
+
     const { data: savedProfile, error: profileError } = await supabase
       .from('NutritionalProfile')
       .upsert({
-        id: uuidv4(),
+        id: profileId,
         ...profileData,
-        created_at: new Date().toISOString()
-      }, {
-        onConflict: 'user_id'
+        created_at: existingProfile ? undefined : new Date().toISOString()
       })
       .select()
       .single();
