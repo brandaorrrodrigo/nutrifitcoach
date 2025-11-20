@@ -28,10 +28,17 @@ function MeuCardapioContent() {
       setLoading(true);
       setError('');
 
-      const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-      const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+      // Usar variáveis de ambiente públicas do Next.js
+      const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
+      const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
+
+      console.log('🔍 Supabase Config:', {
+        hasUrl: !!supabaseUrl,
+        hasKey: !!supabaseKey
+      });
 
       if (!supabaseUrl || !supabaseKey) {
+        console.error('❌ Missing Supabase credentials');
         throw new Error('Configuração do Supabase não encontrada');
       }
 
