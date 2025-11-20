@@ -43,7 +43,7 @@ export async function POST(request: Request) {
       mode: 'subscription',
       payment_method_types: ['card'],
       line_items: [{ price: priceId, quantity: 1 }],
-      success_url: `${process.env.NEXT_PUBLIC_URL}/dashboard?success=true`,
+      success_url: `${process.env.NEXT_PUBLIC_URL}/anamnese-nutricional?success=true`,
       cancel_url: `${process.env.NEXT_PUBLIC_URL}/planos?canceled=true`,
       customer_email: email || 'teste@email.com',
       subscription_data: {
