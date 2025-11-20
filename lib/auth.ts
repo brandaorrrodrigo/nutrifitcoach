@@ -1,7 +1,7 @@
 import { getServerSession } from 'next-auth/next';
 import type { AuthOptions } from 'next-auth';
 import CredentialsProvider from 'next-auth/providers/credentials';
-import { prisma } from '@/lib/prisma';
+import { createClient } from '@supabase/supabase-js';
 import bcrypt from 'bcryptjs';
 
 /**
@@ -30,15 +30,33 @@ export const authOptions: AuthOptions = {
           throw new Error('E-mail e senha são obrigatórios');
         }
 
-        const user = await prisma.user.findUnique({
-          where: { email: credentials.email },
+        // Criar cliente Supabase
+        const supabaseUrl = process.env.SUPABASE_URL;
+        const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+        if (!supabaseUrl || !supabaseKey) {
+          throw new Error('Configuração do servidor incorreta');
+        }
+
+        const supabase = createClient(supabaseUrl, supabaseKey, {
+          auth: {
+            autoRefreshToken: false,
+            persistSession: false
+          }
         });
 
+        // Buscar usuário no Supabase
+        const { data: user } = await supabase
+          .from('AppUser')
+          .select('*')
+          .eq('email', credentials.email.toLowerCase().trim())
+          .single();
+
         if (!user || !user.password) {
-          // Ajuste o campo "password" aqui se no seu schema tiver outro nome.
           throw new Error('Credenciais inválidas');
         }
 
+        // Verificar senha
         const isValid = await bcrypt.compare(credentials.password, user.password);
         if (!isValid) {
           throw new Error('Credenciais inválidas');
@@ -47,11 +65,11 @@ export const authOptions: AuthOptions = {
         // Dados que vão para o token JWT
         return {
           id: user.id,
-          name: user.name ?? user.email,
+          name: user.name ?? user.display_name ?? user.email,
           email: user.email,
-          is_admin: user.is_admin,
-          is_premium: user.is_premium,
-          is_founder: user.is_founder,
+          is_admin: user.is_admin || false,
+          is_premium: user.is_premium || false,
+          is_founder: user.is_founder || false,
         } as any;
       },
     }),
@@ -85,15 +103,26 @@ export const authOptions: AuthOptions = {
       } else {
         // Em requisições subsequentes, garantimos que o token está atualizado com o banco
         if (token.email) {
-          const dbUser = await prisma.user.findUnique({
-            where: { email: token.email as string },
-          });
+          const supabaseUrl = process.env.SUPABASE_URL;
+          const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
-          if (dbUser) {
-            token.id = dbUser.id;
-            token.is_admin = dbUser.is_admin;
-            token.is_premium = dbUser.is_premium;
-            token.is_founder = dbUser.is_founder;
+          if (supabaseUrl && supabaseKey) {
+            const supabase = createClient(supabaseUrl, supabaseKey, {
+              auth: { autoRefreshToken: false, persistSession: false }
+            });
+
+            const { data: dbUser } = await supabase
+              .from('AppUser')
+              .select('*')
+              .eq('email', token.email as string)
+              .single();
+
+            if (dbUser) {
+              token.id = dbUser.id;
+              token.is_admin = dbUser.is_admin || false;
+              token.is_premium = dbUser.is_premium || false;
+              token.is_founder = dbUser.is_founder || false;
+            }
           }
         }
       }
@@ -137,9 +166,22 @@ export async function getCurrentUser() {
     return null;
   }
 
-  const user = await prisma.user.findUnique({
-    where: { email: session.user.email },
+  const supabaseUrl = process.env.SUPABASE_URL;
+  const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+  if (!supabaseUrl || !supabaseKey) {
+    return null;
+  }
+
+  const supabase = createClient(supabaseUrl, supabaseKey, {
+    auth: { autoRefreshToken: false, persistSession: false }
   });
+
+  const { data: user } = await supabase
+    .from('AppUser')
+    .select('*')
+    .eq('email', session.user.email)
+    .single();
 
   return user;
 }
